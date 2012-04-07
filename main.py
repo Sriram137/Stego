@@ -1,36 +1,50 @@
-def return_size(filename = "red1.png"):
-    f = open(filename,"rb")
-    size = 0
-    for x in f:
-        for _ in x:
-            size += 1
-    return size
-
-def encode(filename="red1.png", message='a', key='passwd'):
-    size = return_size(filename)
-    # First and last bytes are used for header info
-    used_bytes = list(xrange(100)) + list(xrange(size-100, size))
-    used_bytes = {x for x in used_bytes}
-
-    # print used_bytes
-
-    f = open(filename, "r")
-    content = list(f.read())
-    # print content
-    f.close()
+import Image, sys
+def encode(filename, outputfile, message, key):
+    f = Image.open(filename)
+    size, content, message = f.size[0] * f.size[1], list(f.getdata())
+    message = message + chr(00)
+    used_b = set()
     cryp = key.__hash__() % size   #Initial Key
     for c in message:
-        while (cryp in used_bytes):
+        while (cryp in used_b):
             cryp = (cryp * cryp + 1 ) % size
-            used_bytes.add(cryp)
-        replacement = str(hex(ord(c)))[2:]
-        content[cryp] = "/x%s" % replacement
-        print content[cryp]
-        print repr(content[cryp])
+        replacement = tuple( [ord(c)] + list(content[cryp])[1:])
+        content[cryp] = replacement
+        used_b.add(cryp)
+    f.putdata(content)
+    f.save(outputfile)
+    print "Successfully encrypted to file %s" % outputfile
 
-    # print cryp, size
-    # print "".join(content)
-    # print content
+def decode(filename, key):
+    f = Image.open(filename)
+    size, content = f.size[0] * f.size[1], list(f.getdata())
+    used_bytes = set()
+    cryp = key.__hash__() % size
+    message = []
 
-# encode(message="")
-encode()
+    while ord('a') <= content[cryp][0] <= ord('z') or ord('A') <= content[cryp][0] <= ord('Z'):
+        while(cryp in used_bytes):
+            cryp = (cryp * cryp + 1 ) % size
+        message.append(chr(content[cryp][0]))
+        used_bytes.add(cryp)
+    print  "Decrytped message using your key is:\n %s" % "".join(message[:-1])
+
+def wrong_usage():
+    print 'Wrong usage'
+    print 'Usage for encoding  : python main.py -e Inputfile Outputfile Message Key'
+    print 'Usage for dencoding : python main.py -e Inputfile Key'
+    print 'Extensions must be provied for filenames'
+
+if __name__ == '__main__':
+    try:
+        if sys.argv[1] not in ['-e', '-d']:
+            wrong_usage()
+        if sys.argv[1] == '-e':
+            encode(*sys.argv[2:])
+        if sys.argv[1] == '-d':
+            decode(*sys.argv[2:])
+    except IndexError:
+        wrong_usage()
+    except Exception as e:
+        print e
+        wrong_usage()

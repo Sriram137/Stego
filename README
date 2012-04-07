@@ -1,0 +1,3 @@
+Usage for encoding  : python main.py -e Inputfile Outputfile Message Key
+Usage for dencoding : python main.py -e Inputfile Key
+Extensions must be provied for filenames
